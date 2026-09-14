@@ -29,7 +29,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Assets/*.ico" />
+    <!-- Tray icons are loaded from disk with LoadImage, so they ship next to the exe. -->
+    <Content Include="Assets/*.ico" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
