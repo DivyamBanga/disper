@@ -1,0 +1,15 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.swp
+# publish output
+publish/
+dist/
+# local models & data
+models/
+*.tar.bz2
+# scratch
+.tmp/
