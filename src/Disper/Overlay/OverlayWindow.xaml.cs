@@ -76,7 +76,7 @@ public partial class OverlayWindow : Window
                 break;
             case SessionState.Processing:
                 Bars.Mode = BarsMode.Processing;
-                Fade(Bars, 0.85, 150);
+                Fade(Bars, 1, 150);
                 ShowContent(bars: true);
                 ShowPill();
                 break;
@@ -143,11 +143,11 @@ public partial class OverlayWindow : Window
 
     private void ShowPill()
     {
+        // Re-place even when already shown: the target app may be on another monitor now.
+        Place();
+        Native.SetWindowPos(_hwnd, Native.HWND_TOPMOST, 0, 0, 0, 0, Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
         if (_shown) return;
         _shown = true;
-        Place();
-        Native.ShowWindow(_hwnd, Native.SW_SHOWNOACTIVATE);
-        Native.SetWindowPos(_hwnd, Native.HWND_TOPMOST, 0, 0, 0, 0, Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
 
         Pill.BeginAnimation(OpacityProperty, new DoubleAnimation(1, EnterDuration) { EasingFunction = EaseOut });
         PillShift.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(10, 0, EnterDuration) { EasingFunction = EaseOut });
@@ -170,7 +170,7 @@ public partial class OverlayWindow : Window
         fade.Completed += (_, _) =>
         {
             if (_shown) return;
-            Native.ShowWindow(_hwnd, Native.SW_HIDE);
+            // The window stays visible-but-transparent; only the render loop stops so idle costs nothing.
             if (_rendering)
             {
                 _rendering = false;

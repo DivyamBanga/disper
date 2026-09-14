@@ -178,6 +178,7 @@ public sealed class DictationController : IDisposable
             try
             {
                 var raw = _audio.Stop();
+                raw = TestMode.LoadSubstituteAudio() ?? raw;
                 var audioSeconds = raw.Length / (double)AudioCapture.TargetRate;
                 var clip = AudioUtil.TrimToSpeech(raw);
                 if (clip.Length == 0)
@@ -204,6 +205,7 @@ public sealed class DictationController : IDisposable
                 var toInsert = ApplySmartSpacing(text, foreground);
                 var outcome = TextInjector.Insert(toInsert, settings.InsertionMode);
                 var app = TextInjector.ForegroundAppName();
+                Log.Info($"insert {outcome} into {app} ({toInsert.Length} chars)");
 
                 _ui.BeginInvoke(() =>
                 {

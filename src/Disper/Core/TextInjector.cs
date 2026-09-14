@@ -42,6 +42,11 @@ public static class TextInjector
 
         var target = Native.GetForegroundWindow();
         Native.GetWindowThreadProcessId(target, out var pid);
+        if (TestMode.Enabled)
+        {
+            Log.Info($"DRY RUN {mode} into [{Native.GetClassName(target)}]: \"{text}\"");
+            return mode == InsertionMode.Type ? InsertOutcome.Typed : InsertOutcome.Inserted;
+        }
         if (target == 0 || pid == Environment.ProcessId)
         {
             // Nothing sensible to paste into (or it is our own dashboard): leave the text on the clipboard.

@@ -1,4 +1,12 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- Placeholder; the real design tokens land with the dashboard. -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Palette.Dark.xaml" />
+        <ResourceDictionary Source="Controls.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- Accent defaults; ThemeManager overrides these at runtime from settings. -->
+    <Color x:Key="C.Accent">#5B8DEF</Color>
+    <Color x:Key="C.AccentText">#FFFFFF</Color>
+    <Color x:Key="C.AccentSoft">#1E2A44</Color>
 </ResourceDictionary>

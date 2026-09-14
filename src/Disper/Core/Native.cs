@@ -30,6 +30,9 @@ internal static class Native
     /// <summary>Stamped on every input event Disper injects so its own hook can recognize and ignore them.</summary>
     public static readonly nint InjectMarker = 0x44495350; // "DISP"
 
+    /// <summary>Injected key events carrying this marker are treated as physical presses. Used by the test harness only.</summary>
+    public static readonly nint TestMarker = 0x54455354; // "TEST"
+
     public const int GWL_EXSTYLE = -20;
     public const int WS_EX_TOPMOST = 0x00000008;
     public const int WS_EX_TRANSPARENT = 0x00000020;

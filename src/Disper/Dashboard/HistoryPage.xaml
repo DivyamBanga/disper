@@ -1,0 +1,50 @@
+<UserControl x:Class="Disper.Dashboard.HistoryPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:dash="clr-namespace:Disper.Dashboard">
+    <dash:PageScaffold x:Name="Scaffold" Title="History">
+        <dash:PageScaffold.Actions>
+            <StackPanel Orientation="Horizontal">
+                <TextBox x:Name="SearchBox" Style="{StaticResource Input}" Width="200" TextChanged="OnSearch"
+                         dash:Hint.Placeholder="Search…" VerticalContentAlignment="Center" />
+                <Button x:Name="ClearBtn" Style="{StaticResource Btn.Ghost}" Content="Clear all" Margin="8,0,0,0" Click="OnClearAll"
+                        Foreground="{DynamicResource B.Danger}" />
+            </StackPanel>
+        </dash:PageScaffold.Actions>
+        <dash:PageScaffold.Body>
+            <Grid>
+                <!-- Empty state -->
+                <StackPanel x:Name="EmptyState" VerticalAlignment="Top" Margin="0,80,0,0" HorizontalAlignment="Center" Visibility="Collapsed">
+                    <TextBlock Text="&#xE81C;" FontFamily="{StaticResource F.Icons}" FontSize="34" Foreground="{DynamicResource B.TextTertiary}" HorizontalAlignment="Center" />
+                    <TextBlock x:Name="EmptyText" Text="Nothing dictated yet." Style="{StaticResource T.Secondary}" Margin="0,14,0,0" HorizontalAlignment="Center" />
+                </StackPanel>
+
+                <ItemsControl x:Name="List">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{DynamicResource B.BgElevated}" BorderBrush="{DynamicResource B.Border}" BorderThickness="1"
+                                    CornerRadius="12" Padding="16,13" Margin="0,0,0,8">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,14,0">
+                                        <TextBlock Text="{Binding Text}" Style="{StaticResource T.Body}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="60" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                            <TextBlock Text="{Binding Meta}" Style="{StaticResource T.Caption}" FontWeight="Normal" Foreground="{DynamicResource B.TextTertiary}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                                        <Button Style="{StaticResource Btn.Icon}" Content="&#xE8C8;" ToolTip="Copy" Tag="{Binding Id}" Click="OnCopy" />
+                                        <Button Style="{StaticResource Btn.Icon}" Content="&#xE74D;" ToolTip="Delete" Tag="{Binding Id}" Click="OnDelete" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+        </dash:PageScaffold.Body>
+    </dash:PageScaffold>
+</UserControl>

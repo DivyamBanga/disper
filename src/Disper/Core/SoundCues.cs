@@ -28,7 +28,7 @@ public sealed class SoundCues : IDisposable
 
     private void Play(SoundPlayer p)
     {
-        if (!Enabled) return;
+        if (!Enabled || TestMode.Enabled) return;
         try { p.Play(); }
         catch (Exception ex) { Log.Warn("sound cue failed: " + ex.Message); }
     }

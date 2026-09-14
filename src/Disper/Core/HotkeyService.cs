@@ -118,7 +118,7 @@ public sealed class HotkeyService : IDisposable
         if (nCode < 0) return Native.CallNextHookEx(_hook, nCode, wParam, lParam);
 
         var k = Marshal.PtrToStructure<Native.KBDLLHOOKSTRUCT>(lParam);
-        if ((k.flags & Native.LLKHF_INJECTED) != 0)
+        if ((k.flags & Native.LLKHF_INJECTED) != 0 && !(TestMode.Enabled && k.dwExtraInfo == Native.TestMarker))
             return Native.CallNextHookEx(_hook, nCode, wParam, lParam); // ours or another tool's; never a hotkey
 
         bool up = (k.flags & Native.LLKHF_UP) != 0;

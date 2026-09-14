@@ -4,7 +4,9 @@ using System.Windows.Threading;
 using Disper.Core;
 using Disper.Dashboard;
 using Disper.Overlay;
+using Disper.Themes;
 using Disper.Tray;
+using Microsoft.Win32;
 
 namespace Disper;
 
@@ -60,13 +62,15 @@ public partial class App : Application
         History.Load();
         if (firstRun) Settings.Save();
 
+        ThemeManager.Apply(Settings.Current.Accent);
+        SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
+
         Sounds = new SoundCues { Enabled = Settings.Current.SoundCues };
         Controller = new DictationController(Settings, History, Transcriber, Audio, Hotkey, Sounds, Dispatcher);
         Controller.StateChanged += (state, _) => _tray?.SetActive(state is SessionState.Arming or SessionState.Listening or SessionState.HandsFree);
 
         _overlay = new OverlayWindow(Controller);
-        _overlay.Show();       // creates the HWND; the window is immediately hidden again by the controller state
-        _overlay.Hide();
+        _overlay.Show();       // stays visible but fully transparent; the pill fades in on demand
 
         _tray = new TrayIcon { MenuFactory = BuildTrayMenu };
         _tray.OpenRequested += ShowDashboard;
@@ -124,7 +128,19 @@ public partial class App : Application
         Hotkey.SetKey(HotkeyService.VkFor(s.Hotkey));
         Sounds!.Enabled = s.SoundCues;
         Autostart.Set(s.StartAtLogin);
+        ThemeManager.ApplyAccent(s.Accent);
         _overlay?.ApplyAccent();
+    }
+
+    private void OnUserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
+    {
+        if (e.Category == UserPreferenceCategory.General)
+            Dispatcher.BeginInvoke(() =>
+            {
+                ThemeManager.ApplyPalette(!Theme.AppsUseLightTheme());
+                ThemeManager.ApplyAccent(Settings.Current.Accent);
+                _tray?.SetActive(Controller?.State is SessionState.Arming or SessionState.Listening or SessionState.HandsFree);
+            });
     }
 
     /// <summary>Re-open the microphone (after the user picks a different one).</summary>
@@ -178,6 +194,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
         _showWait?.Unregister(null);
         _tray?.Dispose();
         Controller?.Dispose();

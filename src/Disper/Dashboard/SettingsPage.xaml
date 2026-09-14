@@ -1,0 +1,140 @@
+<UserControl x:Class="Disper.Dashboard.SettingsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:dash="clr-namespace:Disper.Dashboard">
+    <UserControl.Resources>
+        <!-- Segmented option button -->
+        <Style x:Key="Seg" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{DynamicResource B.TextSecondary}" />
+            <Setter Property="FontFamily" Value="{StaticResource F.Sans}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="b" Background="Transparent" CornerRadius="7" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="{DynamicResource B.BgElevated}" />
+                                <Setter Property="Foreground" Value="{DynamicResource B.Text}" />
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsChecked" Value="False" />
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                </MultiTrigger.Conditions>
+                                <Setter Property="Foreground" Value="{DynamicResource B.Text}" />
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <dash:PageScaffold Title="Settings" Subtitle="Make Disper yours.">
+        <dash:PageScaffold.Body>
+            <StackPanel MaxWidth="640" HorizontalAlignment="Left">
+
+                <!-- Voice -->
+                <TextBlock Text="VOICE &amp; ACTIVATION" Style="{StaticResource T.Caption}" Margin="2,0,0,8" />
+                <Border Style="{StaticResource Card}" Padding="20,6" Margin="0,0,0,22">
+                    <StackPanel>
+                        <dash:SettingRow Title="Hotkey" Description="Hold this key anywhere to dictate.">
+                            <ComboBox x:Name="HotkeyCombo" Style="{StaticResource Combo}" ItemContainerStyle="{StaticResource ComboItem}" MinWidth="150" />
+                        </dash:SettingRow>
+                        <Border Height="1" Background="{DynamicResource B.Border}" Margin="0,2" />
+                        <dash:SettingRow Title="Quick tap to lock hands-free" Description="A short tap keeps recording until you tap again. Off means hold only.">
+                            <ToggleButton x:Name="TapToggle" Style="{StaticResource Switch}" Click="OnTapToggle" />
+                        </dash:SettingRow>
+                    </StackPanel>
+                </Border>
+
+                <!-- Insertion -->
+                <TextBlock Text="TEXT INSERTION" Style="{StaticResource T.Caption}" Margin="2,0,0,8" />
+                <Border Style="{StaticResource Card}" Padding="20,6" Margin="0,0,0,22">
+                    <dash:SettingRow Title="How text appears" Description="Paste is instant. Typing never touches your clipboard.">
+                        <Border Background="{DynamicResource B.BgInput}" BorderBrush="{DynamicResource B.Border}" BorderThickness="1" CornerRadius="9" Padding="3">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton x:Name="SegPaste" Style="{StaticResource Seg}" Content="Paste" GroupName="ins" Checked="OnInsertionChanged" />
+                                <RadioButton x:Name="SegType" Style="{StaticResource Seg}" Content="Type" GroupName="ins" Checked="OnInsertionChanged" />
+                            </StackPanel>
+                        </Border>
+                    </dash:SettingRow>
+                </Border>
+
+                <!-- Cleanup -->
+                <TextBlock Text="CLEANUP" Style="{StaticResource T.Caption}" Margin="2,0,0,8" />
+                <Border Style="{StaticResource Card}" Padding="20,6" Margin="0,0,0,22">
+                    <StackPanel>
+                        <dash:SettingRow Title="Remove filler words" Description="Drops &#8220;um&#8221;, &#8220;uh&#8221; and similar before inserting.">
+                            <ToggleButton x:Name="FillerToggle" Style="{StaticResource Switch}" Click="OnFillerToggle" />
+                        </dash:SettingRow>
+                        <Border Height="1" Background="{DynamicResource B.Border}" Margin="0,2" />
+                        <dash:SettingRow Title="Save history" Description="Keep a local log of everything you dictate.">
+                            <ToggleButton x:Name="HistoryToggle" Style="{StaticResource Switch}" Click="OnHistoryToggle" />
+                        </dash:SettingRow>
+                    </StackPanel>
+                </Border>
+
+                <!-- Sounds & startup -->
+                <TextBlock Text="SOUNDS &amp; STARTUP" Style="{StaticResource T.Caption}" Margin="2,0,0,8" />
+                <Border Style="{StaticResource Card}" Padding="20,6" Margin="0,0,0,22">
+                    <StackPanel>
+                        <dash:SettingRow Title="Sound cues" Description="A soft tick when listening starts and stops.">
+                            <ToggleButton x:Name="SoundToggle" Style="{StaticResource Switch}" Click="OnSoundToggle" />
+                        </dash:SettingRow>
+                        <Border Height="1" Background="{DynamicResource B.Border}" Margin="0,2" />
+                        <dash:SettingRow Title="Start at login" Description="Run Disper in the background when you sign in.">
+                            <ToggleButton x:Name="StartupToggle" Style="{StaticResource Switch}" Click="OnStartupToggle" />
+                        </dash:SettingRow>
+                    </StackPanel>
+                </Border>
+
+                <!-- Microphone -->
+                <TextBlock Text="MICROPHONE" Style="{StaticResource T.Caption}" Margin="2,0,0,8" />
+                <Border Style="{StaticResource Card}" Padding="20,6" Margin="0,0,0,22">
+                    <dash:SettingRow Title="Input device" Description="Which microphone Disper listens to.">
+                        <ComboBox x:Name="MicCombo" Style="{StaticResource Combo}" ItemContainerStyle="{StaticResource ComboItem}" MinWidth="240" MaxWidth="280" />
+                    </dash:SettingRow>
+                </Border>
+
+                <!-- Personalization -->
+                <TextBlock Text="PERSONALIZATION" Style="{StaticResource T.Caption}" Margin="2,0,0,8" />
+                <Border Style="{StaticResource Card}" Padding="20,6" Margin="0,0,0,22">
+                    <StackPanel>
+                        <dash:SettingRow Title="Your name" Description="Used on the Home greeting.">
+                            <TextBox x:Name="NameBox" Style="{StaticResource Input}" Width="200" LostFocus="OnNameChanged" />
+                        </dash:SettingRow>
+                        <Border Height="1" Background="{DynamicResource B.Border}" Margin="0,2" />
+                        <dash:SettingRow Title="Accent" Description="Tints the pill and highlights.">
+                            <StackPanel x:Name="AccentSwatches" Orientation="Horizontal" />
+                        </dash:SettingRow>
+                    </StackPanel>
+                </Border>
+
+                <!-- Model -->
+                <TextBlock Text="SPEECH MODEL" Style="{StaticResource T.Caption}" Margin="2,0,0,8" />
+                <Border Style="{StaticResource Card}" Padding="20,6" Margin="0,0,0,10">
+                    <StackPanel>
+                        <dash:SettingRow Title="Model" Description="Both run fully offline on your machine.">
+                            <ComboBox x:Name="ModelCombo" Style="{StaticResource Combo}" ItemContainerStyle="{StaticResource ComboItem}" MinWidth="200" />
+                        </dash:SettingRow>
+                        <Border Height="1" Background="{DynamicResource B.Border}" Margin="0,2" />
+                        <dash:SettingRow Title="CPU threads" Description="Fewer threads run cooler; four is the sweet spot here.">
+                            <ComboBox x:Name="ThreadsCombo" Style="{StaticResource Combo}" ItemContainerStyle="{StaticResource ComboItem}" MinWidth="100" />
+                        </dash:SettingRow>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock x:Name="VersionText" Style="{StaticResource T.Caption}" Foreground="{DynamicResource B.TextTertiary}" Margin="2,4,0,0" />
+            </StackPanel>
+        </dash:PageScaffold.Body>
+    </dash:PageScaffold>
+</UserControl>

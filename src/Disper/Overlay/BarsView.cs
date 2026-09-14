@@ -15,7 +15,7 @@ public sealed class BarsView : FrameworkElement
     private const int Count = 9;
     private const double BarWidth = 3.0;
     private const double Gap = 4.0;
-    private const double MinHeight = 4.0;
+    private const double BarMinHeight = 4.0;
 
     private readonly double[] _heights = new double[Count];
     private double _smoothed;
@@ -40,7 +40,7 @@ public sealed class BarsView : FrameworkElement
 
     public BarsView()
     {
-        for (int i = 0; i < Count; i++) _heights[i] = MinHeight;
+        for (int i = 0; i < Count; i++) _heights[i] = BarMinHeight;
     }
 
     /// <summary>Advance the animation by <paramref name="dt"/> seconds and repaint.</summary>
@@ -68,17 +68,21 @@ public sealed class BarsView : FrameworkElement
                     double boost = 1 - 0.5 * Math.Abs(i - c) / c;
                     double wave = 0.55 + 0.45 * Math.Sin(_phase * 9 + i * 0.6);
                     double idle = 0.6 * (0.5 + 0.5 * Math.Sin(_phase * 2.2 + i * 0.9)); // faint breathing at silence
-                    h = MinHeight + idle + (maxHeight - MinHeight - idle) * amp * wave * boost;
+                    h = BarMinHeight + idle + (maxHeight - BarMinHeight - idle) * amp * wave * boost;
                     break;
                 }
                 case BarsMode.Processing:
                 {
-                    double wave = 0.5 + 0.5 * Math.Sin(_phase * 7 - i * 0.75);
-                    h = MinHeight + (maxHeight * 0.45 - MinHeight) * wave;
+                    // A bright pulse sweeps left to right and back, so "thinking" reads clearly.
+                    double sweep = (_phase * 1.5) % 2.0;
+                    double centerPos = (sweep <= 1 ? sweep : 2 - sweep) * (Count - 1);
+                    double dist = i - centerPos;
+                    double pulse = Math.Exp(-dist * dist * 0.8);
+                    h = BarMinHeight + (maxHeight - BarMinHeight) * (0.18 + 0.82 * pulse);
                     break;
                 }
                 default:
-                    h = MinHeight;
+                    h = BarMinHeight;
                     break;
             }
             // Ease each bar toward its target so mode changes glide instead of snapping.
@@ -97,7 +101,7 @@ public sealed class BarsView : FrameworkElement
         double cy = ActualHeight / 2;
         for (int i = 0; i < Count; i++)
         {
-            double h = Math.Max(MinHeight, _heights[i]);
+            double h = Math.Max(BarMinHeight, _heights[i]);
             var rect = new Rect(x, cy - h / 2, BarWidth, h);
             dc.DrawRoundedRectangle(_brush, null, rect, BarWidth / 2, BarWidth / 2);
             x += BarWidth + Gap;
