@@ -84,6 +84,10 @@ public partial class App : Application
 
         bool background = e.Args.Any(a => a.Equals("--background", StringComparison.OrdinalIgnoreCase));
         if (!background || firstRun) ShowDashboard();
+
+        var menuShot = Environment.GetEnvironmentVariable("DISPER_SHOT_MENU");
+        if (!string.IsNullOrEmpty(menuShot))
+            Dispatcher.BeginInvoke(() => ShootMenu(menuShot), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
     }
 
     private async Task LoadModelAsync()
@@ -163,26 +167,34 @@ public partial class App : Application
 
     private ContextMenu BuildTrayMenu()
     {
-        var menu = new ContextMenu();
-        menu.Items.Add(new MenuItem { Header = "Open Disper", Command = new Relay(ShowDashboard) });
-        menu.Items.Add(new Separator());
-        menu.Items.Add(new MenuItem
+        var menu = new ContextMenu
         {
-            Header = "Sound cues",
-            IsCheckable = true,
-            IsChecked = Settings.Current.SoundCues,
-            Command = new Relay(() => Settings.Update(s => s.SoundCues = !s.SoundCues)),
-        });
-        menu.Items.Add(new MenuItem
+            Style = (Style)Resources["TrayMenu"],
+            HasDropShadow = false,
+        };
+        var itemStyle = (Style)Resources["TrayItem"];
+        var sepStyle = (Style)Resources["TraySep"];
+
+        MenuItem Item(string header, string glyph, Action action, bool checkable = false, bool @checked = false) => new()
         {
-            Header = "Paste instantly",
-            IsCheckable = true,
-            IsChecked = Settings.Current.InsertionMode == InsertionMode.Paste,
-            Command = new Relay(() => Settings.Update(s =>
-                s.InsertionMode = s.InsertionMode == InsertionMode.Paste ? InsertionMode.Type : InsertionMode.Paste)),
-        });
-        menu.Items.Add(new Separator());
-        menu.Items.Add(new MenuItem { Header = "Quit Disper", Command = new Relay(Quit) });
+            Header = header,
+            Tag = glyph,
+            Style = itemStyle,
+            IsCheckable = checkable,
+            IsChecked = @checked,
+            StaysOpenOnClick = checkable,
+            Command = new Relay(action),
+        };
+
+        menu.Items.Add(Item("Open Disper", "", ShowDashboard));
+        menu.Items.Add(new Separator { Style = sepStyle });
+        menu.Items.Add(Item("Sound cues", "", () => Settings.Update(s => s.SoundCues = !s.SoundCues),
+            checkable: true, @checked: Settings.Current.SoundCues));
+        menu.Items.Add(Item("Paste instantly", "", () => Settings.Update(s =>
+                s.InsertionMode = s.InsertionMode == InsertionMode.Paste ? InsertionMode.Type : InsertionMode.Paste),
+            checkable: true, @checked: Settings.Current.InsertionMode == InsertionMode.Paste));
+        menu.Items.Add(new Separator { Style = sepStyle });
+        menu.Items.Add(Item("Quit Disper", "", Quit));
         return menu;
     }
 
@@ -190,6 +202,35 @@ public partial class App : Application
     {
         Log.Info("Disper quitting");
         Shutdown();
+    }
+
+    /// <summary>Test-only: open the tray menu and render it to a PNG so the styling can be checked headlessly.</summary>
+    private void ShootMenu(string path)
+    {
+        try
+        {
+            var menu = BuildTrayMenu();
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Absolute;
+            menu.HorizontalOffset = 300;
+            menu.VerticalOffset = 300;
+            menu.IsOpen = true;
+            Dispatcher.BeginInvoke(() =>
+            {
+                menu.UpdateLayout();
+                var root = System.Windows.Media.VisualTreeHelper.GetChild(menu, 0) as System.Windows.FrameworkElement;
+                if (root is null) return;
+                var w = (int)Math.Ceiling(root.ActualWidth);
+                var h = (int)Math.Ceiling(root.ActualHeight);
+                var rtb = new System.Windows.Media.Imaging.RenderTargetBitmap(w + 40, h + 40, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+                rtb.Render(root);
+                var enc = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(rtb));
+                using (var fs = File.Create(path)) enc.Save(fs);
+                menu.IsOpen = false;
+                Log.Info($"menu shot {w}x{h}");
+            }, System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+        catch (Exception ex) { Log.Error("menu shot failed", ex); }
     }
 
     protected override void OnExit(ExitEventArgs e)
