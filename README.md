@@ -31,7 +31,7 @@ Left-click the tray icon (or the Start Menu shortcut) to open it.
 | Piece | Choice |
 | --- | --- |
 | UI | C# / .NET 9 / WPF, custom-drawn overlay and tray |
-| Speech-to-text | [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) 1.13.8 running NVIDIA **Parakeet TDT 0.6B v2** (int8, CPU) |
+| Speech-to-text | [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) 1.13.8 running one of three CPU int8 models (see below) |
 | Audio | WASAPI shared-mode capture (NAudio), converted to 16 kHz mono, silence-trimmed |
 | Hotkey | Low-level keyboard hook on its own thread; the key is swallowed so other apps never see it |
 | Insertion | Clipboard paste with save/restore (console-aware), or simulated Unicode typing |
@@ -58,9 +58,23 @@ dotnet publish src/Disper -c Release -r win-x64 --self-contained false -o "%LOCA
 
 The app registers itself to start at login (toggle in Settings) and runs from the tray.
 
+## Speech models
+
+Pick one in Settings — the chosen model downloads once and is then fully offline. Measured on this laptop
+(12 s clip):
+
+| Model | Feel | English WER | Latency | RAM | Download |
+| --- | --- | --- | --- | --- | --- |
+| **Parakeet 0.6B** (default) | Balanced — most accurate | ~6% | ~0.7–1.8 s | ~0.9 GB | 482 MB |
+| **Parakeet 110M** | Light — fast, low memory | ~7.5% | ~0.5–0.7 s | ~0.4 GB | 137 MB |
+| **Moonshine Base** | Different engine, MIT-licensed | ~10% | ~1.1 s | ~0.4 GB | 185 MB |
+
+All three add punctuation and capitalization and run entirely on the CPU. Parakeet 110M is the snappiest with
+almost no accuracy cost, so switch to it if you want the fastest possible turnaround.
+
 ## Notes
 
-- English only. The model is English; Settings also offers "Parakeet Unified" as an alternative.
-- Memory: the resident model uses roughly 0.9 GB — the price of instant, offline transcription.
+- English only.
+- Memory: the resident model uses roughly 0.4–0.9 GB depending on the model — the price of instant, offline transcription.
 - Regenerate the icons after editing `tools/make_icons.py` with `python tools/make_icons.py`.
 - `tools/Bench` times the models on your CPU across thread counts.

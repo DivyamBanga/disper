@@ -31,15 +31,28 @@ public sealed class Transcriber : IDisposable
             var config = new OfflineRecognizerConfig();
             config.FeatConfig.SampleRate = 16000;
             config.FeatConfig.FeatureDim = 80;
-            config.ModelConfig.Transducer.Encoder = model.Encoder;
-            config.ModelConfig.Transducer.Decoder = model.Decoder;
-            config.ModelConfig.Transducer.Joiner = model.Joiner;
             config.ModelConfig.Tokens = model.Tokens;
-            config.ModelConfig.ModelType = "nemo_transducer";
             config.ModelConfig.NumThreads = Math.Clamp(threads, 1, Environment.ProcessorCount);
             config.ModelConfig.Provider = "cpu";
             config.ModelConfig.Debug = 0;
             config.DecodingMethod = "greedy_search";
+
+            switch (model.Kind)
+            {
+                case ModelKind.NemoTransducer:
+                    config.ModelConfig.Transducer.Encoder = model.FileAt("encoder.int8.onnx");
+                    config.ModelConfig.Transducer.Decoder = model.FileAt("decoder.int8.onnx");
+                    config.ModelConfig.Transducer.Joiner = model.FileAt("joiner.int8.onnx");
+                    config.ModelConfig.ModelType = "nemo_transducer";
+                    break;
+                case ModelKind.Moonshine:
+                    config.ModelConfig.Moonshine.Preprocessor = model.FileAt("preprocess.onnx");
+                    config.ModelConfig.Moonshine.Encoder = model.FileAt("encode.int8.onnx");
+                    config.ModelConfig.Moonshine.UncachedDecoder = model.FileAt("uncached_decode.int8.onnx");
+                    config.ModelConfig.Moonshine.CachedDecoder = model.FileAt("cached_decode.int8.onnx");
+                    // sherpa auto-detects Moonshine, so ModelType stays empty.
+                    break;
+            }
 
             var recognizer = new OfflineRecognizer(config);
             var loadMs = sw.ElapsedMilliseconds;

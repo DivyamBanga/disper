@@ -130,8 +130,8 @@
                 <TextBlock Text="SPEECH MODEL" Style="{StaticResource T.Caption}" Margin="2,0,0,8" />
                 <Border Style="{StaticResource Card}" Padding="20,6" Margin="0,0,0,10">
                     <StackPanel>
-                        <dash:SettingRow Title="Model" Description="Both run fully offline on your machine.">
-                            <ComboBox x:Name="ModelCombo" Style="{StaticResource Combo}" ItemContainerStyle="{StaticResource ComboItem}" MinWidth="200" />
+                        <dash:SettingRow x:Name="ModelRow" Title="Model" Description="All run fully offline on your machine.">
+                            <ComboBox x:Name="ModelCombo" Style="{StaticResource Combo}" ItemContainerStyle="{StaticResource ComboItem}" MinWidth="170" />
                         </dash:SettingRow>
                         <Border Height="1" Background="{DynamicResource B.Border}" Margin="0,2" />
                         <dash:SettingRow Title="CPU threads" Description="Fewer threads run cooler; four is the sweet spot here.">

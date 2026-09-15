@@ -54,6 +54,7 @@ public partial class SettingsPage : UserControl, IDashboardPage
         StartupToggle.IsChecked = s.StartAtLogin;
         NameBox.Text = s.UserName;
         Select(ModelCombo, s.ModelId);
+        UpdateModelDescription();
         Select(ThreadsCombo, s.Threads);
         HighlightAccent(s.Accent);
         LoadMics(s.MicrophoneId);
@@ -157,12 +158,21 @@ public partial class SettingsPage : UserControl, IDashboardPage
 
     private void OnModelChanged(object sender, SelectionChangedEventArgs e)
     {
+        UpdateModelDescription();
         if (_loading) return;
         if (TagOf(ModelCombo) is { } id && id != App.Settings.Current.ModelId)
         {
             App.Settings.Update(s => s.ModelId = id);
             _ = App.Instance.ReloadModelAsync();
         }
+    }
+
+    private void UpdateModelDescription()
+    {
+        if (TagOf(ModelCombo) is not { } id) return;
+        var m = ModelCatalog.Get(id);
+        var installed = m.IsInstalled ? "" : $" · downloads {m.SizeMb} MB on first use";
+        ModelRow.Description = $"{m.Tagline}. Runs fully offline{installed}.";
     }
 
     private void OnThreadsChanged(object sender, SelectionChangedEventArgs e)

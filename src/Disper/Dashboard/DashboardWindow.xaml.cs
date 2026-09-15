@@ -14,7 +14,7 @@ public partial class DashboardWindow : Window
     public DashboardWindow()
     {
         InitializeComponent();
-        if (Environment.GetEnvironmentVariable("DISPER_TALL") == "1") Height = 1180;
+        if (Environment.GetEnvironmentVariable("DISPER_TALL") == "1") Height = 1560;
         Loaded += (_, _) =>
         {
             Navigate("Home");
@@ -133,8 +133,27 @@ public partial class DashboardWindow : Window
             await Task.Delay(300);   // let toggle slides and cross-fades settle before capturing
             UpdateLayout();
             SelfShot(Path.Combine(dir, $"page_{name}.png"));
+
+            if (name == "settings" && FindScrollViewer(PageHost) is { } sv)
+            {
+                sv.ScrollToEnd();
+                await Task.Delay(200);
+                UpdateLayout();
+                SelfShot(Path.Combine(dir, "page_settings_bottom.png"));
+            }
         }
         Core.Log.Info("shootall done");
+    }
+
+    private static System.Windows.Controls.ScrollViewer? FindScrollViewer(DependencyObject root)
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is System.Windows.Controls.ScrollViewer sv) return sv;
+            if (FindScrollViewer(child) is { } found) return found;
+        }
+        return null;
     }
 
     /// <summary>Test-only: render the window to a PNG so screenshots don't depend on desktop compositing.</summary>

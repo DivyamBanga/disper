@@ -3,19 +3,31 @@ using System.Net.Http;
 
 namespace Disper.Core;
 
-public sealed record ModelInfo(string Id, string Name, string Folder, string Url, long ApproxBytes)
-{
-    public string Dir => Path.Combine(AppPaths.ModelsDir, Folder);
-    public string Encoder => Path.Combine(Dir, "encoder.int8.onnx");
-    public string Decoder => Path.Combine(Dir, "decoder.int8.onnx");
-    public string Joiner => Path.Combine(Dir, "joiner.int8.onnx");
-    public string Tokens => Path.Combine(Dir, "tokens.txt");
+/// <summary>How a model plugs into sherpa-onnx — decides which config fields the transcriber fills.</summary>
+public enum ModelKind { NemoTransducer, Moonshine }
 
-    public bool IsInstalled =>
-        File.Exists(Encoder) && File.Exists(Decoder) && File.Exists(Joiner) && File.Exists(Tokens);
+public sealed record ModelInfo(
+    string Id, string Name, string Tagline, string Folder, string Url, long ApproxBytes, ModelKind Kind)
+{
+    public string Dir => System.IO.Path.Combine(AppPaths.ModelsDir, Folder);
+    public string FileAt(string rel) => System.IO.Path.Combine(Dir, rel);
+    public string Tokens => FileAt("tokens.txt");
+
+    /// <summary>Files that must be present for the model to count as installed, by kind.</summary>
+    public string[] RequiredFiles => Kind switch
+    {
+        ModelKind.NemoTransducer => new[] { "encoder.int8.onnx", "decoder.int8.onnx", "joiner.int8.onnx", "tokens.txt" },
+        ModelKind.Moonshine => new[] { "preprocess.onnx", "encode.int8.onnx", "uncached_decode.int8.onnx", "cached_decode.int8.onnx", "tokens.txt" },
+        _ => Array.Empty<string>(),
+    };
+
+    public bool IsInstalled => RequiredFiles.All(f => File.Exists(FileAt(f)));
+
+    /// <summary>Rough download size shown while installing, in MB.</summary>
+    public int SizeMb => (int)Math.Round(ApproxBytes / 1_048_576.0);
 }
 
-/// <summary>The English models Disper knows how to run. All are NVIDIA Parakeet exports packaged by sherpa-onnx.</summary>
+/// <summary>The English speech models Disper can run, from lightest to most accurate.</summary>
 public static class ModelCatalog
 {
     private const string Base = "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/";
@@ -26,16 +38,28 @@ public static class ModelCatalog
     {
         new ModelInfo(
             "parakeet-tdt-0.6b-v2-int8",
-            "Parakeet 0.6B v2",
+            "Parakeet 0.6B",
+            "Balanced — most accurate",
             "sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8",
             Base + "sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8.tar.bz2",
-            482_468_385),
+            482_468_385,
+            ModelKind.NemoTransducer),
         new ModelInfo(
-            "parakeet-unified-en-0.6b-int8",
-            "Parakeet Unified 0.6B",
-            "sherpa-onnx-nemo-parakeet-unified-en-0.6b-int8-non-streaming",
-            Base + "sherpa-onnx-nemo-parakeet-unified-en-0.6b-int8-non-streaming.tar.bz2",
-            501_000_000),
+            "parakeet-110m",
+            "Parakeet 110M",
+            "Light — fast, low memory",
+            "sherpa-onnx-nemo-parakeet_tdt_transducer_110m-en-36000-int8",
+            Base + "sherpa-onnx-nemo-parakeet_tdt_transducer_110m-en-36000-int8.tar.bz2",
+            137_000_000,
+            ModelKind.NemoTransducer),
+        new ModelInfo(
+            "moonshine-base",
+            "Moonshine Base",
+            "Different engine — MIT-licensed",
+            "sherpa-onnx-moonshine-base-en-int8",
+            Base + "sherpa-onnx-moonshine-base-en-int8.tar.bz2",
+            185_000_000,
+            ModelKind.Moonshine),
     };
 
     public static ModelInfo Get(string id) => All.FirstOrDefault(m => m.Id == id) ?? All[0];
