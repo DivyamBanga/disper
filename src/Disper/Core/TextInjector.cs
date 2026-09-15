@@ -42,7 +42,7 @@ public static class TextInjector
 
         var target = Native.GetForegroundWindow();
         Native.GetWindowThreadProcessId(target, out var pid);
-        if (TestMode.Enabled)
+        if (TestMode.Enabled && !TestMode.RealInsert)
         {
             Log.Info($"DRY RUN {mode} into [{Native.GetClassName(target)}]: \"{text}\"");
             return mode == InsertionMode.Type ? InsertOutcome.Typed : InsertOutcome.Inserted;

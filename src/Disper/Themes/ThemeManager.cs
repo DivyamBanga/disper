@@ -16,7 +16,7 @@ public static class ThemeManager
 
     public static void Apply(string accentId)
     {
-        ApplyPalette(!Theme.AppsUseLightTheme());
+        ApplyPalette(!Theme.AppsUseLightTheme() && Environment.GetEnvironmentVariable("DISPER_FORCE_THEME") != "light");
         ApplyAccent(accentId);
     }
 

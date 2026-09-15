@@ -8,6 +8,7 @@ namespace Disper.Core;
 public static class TestMode
 {
     public static readonly bool Enabled = Environment.GetEnvironmentVariable("DISPER_TEST") == "1";
+    public static readonly bool RealInsert = Environment.GetEnvironmentVariable("DISPER_TEST_REALINSERT") == "1";
     public static readonly string? AudioFile = Environment.GetEnvironmentVariable("DISPER_TEST_AUDIO");
 
     public static float[]? LoadSubstituteAudio()
