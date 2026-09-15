@@ -14,6 +14,7 @@ public partial class DashboardWindow : Window
     public DashboardWindow()
     {
         InitializeComponent();
+        if (Environment.GetEnvironmentVariable("DISPER_TALL") == "1") Height = 1180;
         Loaded += (_, _) =>
         {
             Navigate("Home");
