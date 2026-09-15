@@ -34,6 +34,7 @@ public sealed class Settings
 
     public InsertionMode InsertionMode { get; set; } = InsertionMode.Paste;
     public bool SoundCues { get; set; } = true;
+    public string SoundStyle { get; set; } = "smooth";
     public bool StartAtLogin { get; set; } = true;
     public bool RemoveFillers { get; set; } = true;
     public bool SaveHistory { get; set; } = true;

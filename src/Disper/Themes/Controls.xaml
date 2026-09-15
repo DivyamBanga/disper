@@ -233,47 +233,58 @@
         </Setter>
     </Style>
 
-    <!-- ================= Toggle switch (styled ToggleButton) ================= -->
+    <!-- ================= Toggle switch (styled ToggleButton) =================
+         The on-state is declared with Setters so the initial state always renders correctly; the smooth
+         thumb slide comes from Checked/Unchecked event animations that fire on user interaction. -->
     <Style x:Key="Switch" TargetType="ToggleButton">
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToggleButton">
-                    <Border x:Name="track" Width="40" Height="23" CornerRadius="12"
-                            Background="{DynamicResource B.BgActive}">
+                    <Grid Width="40" Height="23">
+                        <Border CornerRadius="12" Background="{DynamicResource B.BgActive}" />
+                        <!-- No local Opacity: a local value would outrank the trigger Setters below. -->
+                        <Border x:Name="trackOn" CornerRadius="12" Background="{DynamicResource B.Accent}" />
                         <Border x:Name="thumb" Width="17" Height="17" CornerRadius="9"
-                                HorizontalAlignment="Left" Margin="3,0,0,0"
-                                Background="White">
+                                HorizontalAlignment="Left" VerticalAlignment="Center" Margin="3,0,0,0" Background="White">
+                            <Border.Effect>
+                                <!-- A faint shadow keeps the thumb legible on any accent, light ones included. -->
+                                <DropShadowEffect BlurRadius="3" ShadowDepth="0.5" Direction="270" Opacity="0.35" Color="Black" />
+                            </Border.Effect>
                             <Border.RenderTransform>
                                 <TranslateTransform x:Name="tx" X="0" />
                             </Border.RenderTransform>
                         </Border>
-                    </Border>
+                    </Grid>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="track" Property="Background" Value="{DynamicResource B.Accent}" />
-                            <Trigger.EnterActions>
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="tx" Storyboard.TargetProperty="X"
-                                                         To="17" Duration="0:0:0.16">
-                                            <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
-                                        </DoubleAnimation>
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </Trigger.EnterActions>
-                            <Trigger.ExitActions>
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="tx" Storyboard.TargetProperty="X"
-                                                         To="0" Duration="0:0:0.16">
-                                            <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
-                                        </DoubleAnimation>
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </Trigger.ExitActions>
+                        <!-- Track color is set declaratively for both states (no local value to override it);
+                             the thumb slides via the Checked/Unchecked events, which fire when IsChecked is
+                             set after the page is in the tree (see DashboardWindow.Navigate). -->
+                        <Trigger Property="IsChecked" Value="False">
+                            <Setter TargetName="trackOn" Property="Opacity" Value="0" />
                         </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="trackOn" Property="Opacity" Value="1" />
+                        </Trigger>
+                        <EventTrigger RoutedEvent="ToggleButton.Checked">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="tx" Storyboard.TargetProperty="X" To="17" Duration="0:0:0.16">
+                                        <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                        <EventTrigger RoutedEvent="ToggleButton.Unchecked">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="tx" Storyboard.TargetProperty="X" To="0" Duration="0:0:0.16">
+                                        <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>

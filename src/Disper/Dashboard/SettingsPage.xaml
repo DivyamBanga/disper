@@ -87,8 +87,15 @@
                 <TextBlock Text="SOUNDS &amp; STARTUP" Style="{StaticResource T.Caption}" Margin="2,0,0,8" />
                 <Border Style="{StaticResource Card}" Padding="20,6" Margin="0,0,0,22">
                     <StackPanel>
-                        <dash:SettingRow Title="Sound cues" Description="A soft tick when listening starts and stops.">
+                        <dash:SettingRow Title="Sound cues" Description="A soft cue when listening starts and stops.">
                             <ToggleButton x:Name="SoundToggle" Style="{StaticResource Switch}" Click="OnSoundToggle" />
+                        </dash:SettingRow>
+                        <Border Height="1" Background="{DynamicResource B.Border}" Margin="0,2" />
+                        <dash:SettingRow Title="Sound style" Description="Choose a cue and preview it.">
+                            <StackPanel Orientation="Horizontal">
+                                <ComboBox x:Name="SoundStyleCombo" Style="{StaticResource Combo}" ItemContainerStyle="{StaticResource ComboItem}" MinWidth="150" />
+                                <Button x:Name="PreviewSoundBtn" Style="{StaticResource Btn.Icon}" Content="&#xE768;" ToolTip="Preview" Margin="6,0,0,0" Click="OnPreviewSound" />
+                            </StackPanel>
                         </dash:SettingRow>
                         <Border Height="1" Background="{DynamicResource B.Border}" Margin="0,2" />
                         <dash:SettingRow Title="Start at login" Description="Run Disper in the background when you sign in.">

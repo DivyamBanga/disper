@@ -99,19 +99,23 @@ public partial class DashboardWindow : Window
             _pages[name] = page;
         }
 
-        if (page is IDashboardPage refreshable) refreshable.OnShow();
-
         // Quick cross-fade with a small upward slide.
         var tt = new TranslateTransform(0, 8);
         page.RenderTransform = tt;
         page.Opacity = 0;
         PageHost.Content = page;
+
+        // Apply templates before the page populates its controls, so setting e.g. a toggle's IsChecked
+        // can resolve the templated parts it animates instead of throwing.
+        page.UpdateLayout();
+        if (page is IDashboardPage refreshable) refreshable.OnShow();
+
         page.BeginAnimation(OpacityProperty, new DoubleAnimation(1, new Duration(TimeSpan.FromMilliseconds(180))) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
         tt.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(8, 0, new Duration(TimeSpan.FromMilliseconds(220))) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
     }
 
     /// <summary>Test-only: render every page to a PNG in <paramref name="dir"/> so screenshots don't depend on desktop compositing.</summary>
-    private void ShootAll(string dir)
+    private async void ShootAll(string dir)
     {
         Directory.CreateDirectory(dir);
         foreach (var (nav, name) in new[] { (NavHome, "home"), (NavHistory, "history"), (NavDictionary, "dictionary"), (NavSnippets, "snippets"), (NavSettings, "settings") })
@@ -125,6 +129,7 @@ public partial class DashboardWindow : Window
                 page.Opacity = 1;
                 page.RenderTransform = System.Windows.Media.Transform.Identity;
             }
+            await Task.Delay(300);   // let toggle slides and cross-fades settle before capturing
             UpdateLayout();
             SelfShot(Path.Combine(dir, $"page_{name}.png"));
         }

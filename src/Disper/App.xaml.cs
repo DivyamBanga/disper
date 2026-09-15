@@ -65,7 +65,9 @@ public partial class App : Application
         ThemeManager.Apply(Settings.Current.Accent);
         SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
 
-        Sounds = new SoundCues { Enabled = Settings.Current.SoundCues };
+        Sounds = new SoundCues(Settings.Current.SoundStyle) { Enabled = Settings.Current.SoundCues };
+        var dumpSounds = Environment.GetEnvironmentVariable("DISPER_DUMP_SOUNDS");
+        if (!string.IsNullOrEmpty(dumpSounds)) SoundCues.DumpAll(dumpSounds);
         Controller = new DictationController(Settings, History, Transcriber, Audio, Hotkey, Sounds, Dispatcher);
         Controller.StateChanged += (state, _) => _tray?.SetActive(state is SessionState.Arming or SessionState.Listening or SessionState.HandsFree);
 
@@ -131,6 +133,7 @@ public partial class App : Application
     {
         Hotkey.SetKey(HotkeyService.VkFor(s.Hotkey));
         Sounds!.Enabled = s.SoundCues;
+        Sounds.SetStyle(s.SoundStyle);
         Autostart.Set(s.StartAtLogin);
         ThemeManager.ApplyAccent(s.Accent);
         _overlay?.ApplyAccent();

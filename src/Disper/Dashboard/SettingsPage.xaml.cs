@@ -28,6 +28,10 @@ public partial class SettingsPage : UserControl, IDashboardPage
             ThreadsCombo.Items.Add(new ComboBoxItem { Content = t.ToString(), Tag = t });
         ThreadsCombo.SelectionChanged += OnThreadsChanged;
 
+        foreach (var (id, name, _) in SoundStyles.All)
+            SoundStyleCombo.Items.Add(new ComboBoxItem { Content = name, Tag = id });
+        SoundStyleCombo.SelectionChanged += OnSoundStyleChanged;
+
         MicCombo.SelectionChanged += OnMicChanged;
 
         var v = Assembly.GetExecutingAssembly().GetName().Version;
@@ -46,6 +50,7 @@ public partial class SettingsPage : UserControl, IDashboardPage
         FillerToggle.IsChecked = s.RemoveFillers;
         HistoryToggle.IsChecked = s.SaveHistory;
         SoundToggle.IsChecked = s.SoundCues;
+        Select(SoundStyleCombo, s.SoundStyle);
         StartupToggle.IsChecked = s.StartAtLogin;
         NameBox.Text = s.UserName;
         Select(ModelCombo, s.ModelId);
@@ -109,6 +114,21 @@ public partial class SettingsPage : UserControl, IDashboardPage
         if (_loading) return;
         App.Settings.Update(s => s.SoundCues = SoundToggle.IsChecked == true);
         if (SoundToggle.IsChecked == true) App.Sounds?.Start();
+    }
+
+    private void OnSoundStyleChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading) return;
+        if (TagOf(SoundStyleCombo) is { } id)
+        {
+            App.Settings.Update(s => s.SoundStyle = id);
+            App.Sounds?.Preview(id);
+        }
+    }
+
+    private void OnPreviewSound(object sender, RoutedEventArgs e)
+    {
+        if (TagOf(SoundStyleCombo) is { } id) App.Sounds?.Preview(id);
     }
 
     private void OnStartupToggle(object sender, RoutedEventArgs e)
