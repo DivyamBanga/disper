@@ -3,23 +3,35 @@ using System.Media;
 namespace Disper.Core;
 
 /// <summary>
-/// Three tiny synthesized cues (start, stop, cancel) generated in memory at startup, so there are no audio
-/// assets to ship and they play through the default output with negligible latency.
+/// Soft, warm start/stop/cancel cues synthesized in memory — no audio files to ship. The tone is
+/// deliberately macOS-like: gentle blooming dyads (two harmonically related notes) with a smooth
+/// raised-cosine attack, a mostly-fundamental timbre, and a soft exponential tail, so nothing clicks
+/// or beeps. Kept quiet so it sits under whatever you're doing.
 /// </summary>
 public sealed class SoundCues : IDisposable
 {
-    private const int Rate = 44100;
+    private const int Rate = 48000;
     private readonly SoundPlayer _start;
     private readonly SoundPlayer _stop;
     private readonly SoundPlayer _cancel;
 
     public bool Enabled { get; set; } = true;
 
+    private readonly record struct Note(double Freq, double Start, double Dur, double Gain);
+
     public SoundCues()
     {
-        _start = Make((740, 45), (988, 70));
-        _stop = Make((988, 45), (740, 70));
-        _cancel = Make((392, 80));
+        // Start: a warm perfect fifth blooming upward — reads as "ready", not "beep".
+        _start = Render(
+            new Note(587.33, 0.000, 0.46, 0.16),   // D5
+            new Note(880.00, 0.055, 0.42, 0.11));   // A5, entering a touch later and softer
+        // Stop: the same interval settling gently downward.
+        _stop = Render(
+            new Note(783.99, 0.000, 0.40, 0.14),   // G5
+            new Note(587.33, 0.055, 0.40, 0.12));   // D5
+        // Cancel: one soft, low, quick note.
+        _cancel = Render(
+            new Note(440.00, 0.000, 0.24, 0.12));   // A4
     }
 
     public void Start() => Play(_start);
@@ -33,47 +45,74 @@ public sealed class SoundCues : IDisposable
         catch (Exception ex) { Log.Warn("sound cue failed: " + ex.Message); }
     }
 
-    private static SoundPlayer Make(params (double freq, int ms)[] notes)
+    private static SoundPlayer Render(params Note[] notes)
     {
-        int total = notes.Sum(n => n.ms) * Rate / 1000 + Rate / 20; // plus 50 ms tail for the decay
-        var pcm = new short[total];
-        int pos = 0;
-        foreach (var (freq, ms) in notes)
+        double total = notes.Max(n => n.Start + n.Dur) + 0.05;
+        int count = (int)(total * Rate);
+        var buf = new double[count];
+
+        foreach (var note in notes)
         {
-            int len = ms * Rate / 1000;
-            for (int i = 0; i < len + Rate / 20 && pos + i < total; i++)
+            int s0 = (int)(note.Start * Rate);
+            int len = (int)(note.Dur * Rate);
+            double w = 2 * Math.PI * note.Freq;
+            const double attack = 0.016;   // gentle swell-in, no click
+            const double release = 0.05;   // smooth fade-out at the end, no cutoff click
+            double relStart = note.Dur - release;
+
+            for (int i = 0; i < len && s0 + i < count; i++)
             {
                 double t = i / (double)Rate;
-                double attack = Math.Min(1, i / (0.004 * Rate));
-                double decay = Math.Exp(-t * 28);
-                double env = attack * decay * 0.16;
-                double v = Math.Sin(2 * Math.PI * freq * t) + 0.25 * Math.Sin(2 * Math.PI * freq * 2 * t);
-                pcm[pos + i] = (short)Math.Clamp(pcm[pos + i] + v * env * 32767, short.MinValue, short.MaxValue);
+                double env;
+                if (t < attack) env = 0.5 - 0.5 * Math.Cos(Math.PI * t / attack);
+                else env = Math.Exp(-(t - attack) / 0.22);
+                if (t > relStart) env *= Math.Max(0, (note.Dur - t) / release);
+
+                // Warm timbre: fundamental plus a soft octave for body; no bright/odd harmonics.
+                double sample = Math.Sin(w * t) + 0.16 * Math.Sin(2 * w * t);
+                buf[s0 + i] += sample * env * note.Gain;
             }
-            pos += len;
         }
 
-        var ms0 = new MemoryStream();
-        using (var w = new BinaryWriter(ms0, System.Text.Encoding.ASCII, leaveOpen: true))
+        var pcm = new short[count];
+        for (int i = 0; i < count; i++)
+            pcm[i] = (short)Math.Clamp(buf[i] * 32767, short.MinValue, short.MaxValue);
+
+        var ms = new MemoryStream();
+        using (var wr = new BinaryWriter(ms, System.Text.Encoding.ASCII, leaveOpen: true))
         {
             int dataBytes = pcm.Length * 2;
-            w.Write("RIFF"u8);
-            w.Write(36 + dataBytes);
-            w.Write("WAVE"u8);
-            w.Write("fmt "u8);
-            w.Write(16);
-            w.Write((short)1);
-            w.Write((short)1);
-            w.Write(Rate);
-            w.Write(Rate * 2);
-            w.Write((short)2);
-            w.Write((short)16);
-            w.Write("data"u8);
-            w.Write(dataBytes);
-            foreach (var s in pcm) w.Write(s);
+            wr.Write("RIFF"u8);
+            wr.Write(36 + dataBytes);
+            wr.Write("WAVE"u8);
+            wr.Write("fmt "u8);
+            wr.Write(16);
+            wr.Write((short)1);
+            wr.Write((short)1);
+            wr.Write(Rate);
+            wr.Write(Rate * 2);
+            wr.Write((short)2);
+            wr.Write((short)16);
+            wr.Write("data"u8);
+            wr.Write(dataBytes);
+            foreach (var s in pcm) wr.Write(s);
         }
-        ms0.Position = 0;
-        var player = new SoundPlayer(ms0);
+        ms.Position = 0;
+
+        // Test hook: dump the cues to disk so they can be previewed without a speaker.
+        var dumpDir = Environment.GetEnvironmentVariable("DISPER_DUMP_SOUNDS");
+        if (!string.IsNullOrEmpty(dumpDir))
+        {
+            try
+            {
+                Directory.CreateDirectory(dumpDir);
+                var name = $"cue_{notes[0].Freq:F0}_{notes.Length}.wav";
+                File.WriteAllBytes(Path.Combine(dumpDir, name), ms.ToArray());
+            }
+            catch { /* preview only */ }
+        }
+
+        var player = new SoundPlayer(ms);
         player.Load();
         return player;
     }

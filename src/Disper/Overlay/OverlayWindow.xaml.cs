@@ -35,10 +35,13 @@ public partial class OverlayWindow : Window
 
     public void ApplyAccent()
     {
-        var color = Theme.AccentColor(App.Settings.Current.Accent);
-        Bars.Brush = new SolidColorBrush(color);
-        LockDot.Fill = new SolidColorBrush(color);
-        Check.Foreground = new SolidColorBrush(color);
+        // The bars and lock dot are white for a clean, mac-like look on the dark pill; the success
+        // check keeps the accent color as a small moment of life.
+        var white = new SolidColorBrush(Color.FromRgb(0xF7, 0xF7, 0xF7));
+        white.Freeze();
+        Bars.Brush = white;
+        LockDot.Fill = white;
+        Check.Foreground = new SolidColorBrush(Theme.AccentColor(App.Settings.Current.Accent));
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -58,35 +61,31 @@ public partial class OverlayWindow : Window
         {
             case SessionState.Arming:
                 Bars.Mode = BarsMode.Arming;
-                Bars.Opacity = 0.45;
-                ShowContent(bars: true);
+                SetContent(bars: 0.55);
                 ShowPill();
                 break;
             case SessionState.Listening:
                 Bars.Mode = BarsMode.Live;
-                Fade(Bars, 1, 120);
-                ShowContent(bars: true);
+                SetContent(bars: 1);
                 ShowPill();
                 break;
             case SessionState.HandsFree:
                 Bars.Mode = BarsMode.Live;
-                Fade(Bars, 1, 120);
-                ShowContent(bars: true, lockDot: true);
+                SetContent(bars: 1, lockDot: true);
                 ShowPill();
                 break;
             case SessionState.Processing:
                 Bars.Mode = BarsMode.Processing;
-                Fade(Bars, 1, 150);
-                ShowContent(bars: true);
+                SetContent(bars: 1);
                 ShowPill();
                 break;
             case SessionState.Done:
-                ShowContent(check: true);
+                SetContent(check: true);
                 ShowPill();
                 break;
             case SessionState.Notice:
                 Message.Text = message ?? "";
-                ShowContent(message: true);
+                SetContent(message: true);
                 ShowPill();
                 break;
             default:
@@ -95,31 +94,33 @@ public partial class OverlayWindow : Window
         }
     }
 
-    private void ShowContent(bool bars = false, bool message = false, bool check = false, bool lockDot = false)
+    /// <summary>
+    /// Cross-fades the pill's contents to an explicit target. Every element is animated (never direct-set)
+    /// so a held animation can't shadow a later value — that was the bug that made the bars vanish.
+    /// </summary>
+    private void SetContent(double bars = 0, bool lockDot = false, bool check = false, bool message = false)
     {
-        Fade(Bars, bars ? Bars.Opacity : 0, 120);
-        if (!bars) Bars.Opacity = 0;
-        Fade(Message, message ? 1 : 0, 140);
+        Fade(Bars, bars, 130);
         Fade(LockDot, lockDot ? 1 : 0, 160);
         Fade(Check, check ? 1 : 0, 160);
+        Fade(Message, message ? 1 : 0, 140);
         if (check)
         {
-            var pop = new DoubleAnimation(0.6, 1, new Duration(TimeSpan.FromMilliseconds(260)))
+            var pop = new DoubleAnimation(0.6, 1, new Duration(TimeSpan.FromMilliseconds(280)))
             {
-                EasingFunction = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.6 },
+                EasingFunction = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.55 },
             };
             CheckScale.BeginAnimation(ScaleTransform.ScaleXProperty, pop);
             CheckScale.BeginAnimation(ScaleTransform.ScaleYProperty, pop);
         }
 
         // Size the pill to what it shows: bars are fixed width, messages measure their text.
-        double target;
+        double target = 128;
         if (message)
         {
             Message.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             target = Math.Max(128, Message.DesiredSize.Width + Pill.Padding.Left + Pill.Padding.Right + 2);
         }
-        else target = 128;
         AnimateWidth(target);
     }
 
@@ -171,15 +172,12 @@ public partial class OverlayWindow : Window
         {
             if (_shown) return;
             // The window stays visible-but-transparent; only the render loop stops so idle costs nothing.
+            // Content opacities are left as animations; the next show re-animates them to their targets.
             if (_rendering)
             {
                 _rendering = false;
                 CompositionTarget.Rendering -= OnRendering;
             }
-            Bars.Opacity = 0;
-            Message.Opacity = 0;
-            Check.Opacity = 0;
-            LockDot.Opacity = 0;
         };
         Pill.BeginAnimation(OpacityProperty, fade);
         PillShift.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(8, ExitDuration) { EasingFunction = EaseIn });
@@ -192,7 +190,10 @@ public partial class OverlayWindow : Window
         var now = ((RenderingEventArgs)e).RenderingTime;
         double dt = _lastRender == TimeSpan.Zero ? 1 / 60.0 : (now - _lastRender).TotalSeconds;
         _lastRender = now;
-        if (Bars.Opacity > 0) Bars.Tick(dt);
+        // Animate the bars in every state that shows them; using the state (not the animated opacity)
+        // keeps them ticking reliably across repeated dictations.
+        if (_state is SessionState.Arming or SessionState.Listening or SessionState.HandsFree or SessionState.Processing)
+            Bars.Tick(dt);
     }
 
     /// <summary>Bottom-center of the monitor that holds the window being dictated into, in physical pixels.</summary>
