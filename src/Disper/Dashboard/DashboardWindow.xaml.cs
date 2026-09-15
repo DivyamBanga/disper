@@ -20,7 +20,20 @@ public partial class DashboardWindow : Window
             UpdateStatus();
             var shot = Environment.GetEnvironmentVariable("DISPER_SHOT");
             if (!string.IsNullOrEmpty(shot))
-                Dispatcher.BeginInvoke(new Action(() => ShootAll(shot)), System.Windows.Threading.DispatcherPriority.ContextIdle);
+            {
+                // Wait until the model is ready (or 8 s) so the status shows its real state in the shot.
+                var start = DateTime.UtcNow;
+                var t = new System.Windows.Threading.DispatcherTimer(TimeSpan.FromMilliseconds(200), System.Windows.Threading.DispatcherPriority.ApplicationIdle, (s, _) =>
+                {
+                    if (App.Transcriber.IsReady || (DateTime.UtcNow - start).TotalSeconds > 8)
+                    {
+                        ((System.Windows.Threading.DispatcherTimer)s!).Stop();
+                        UpdateStatus();
+                        ShootAll(shot);
+                    }
+                }, Dispatcher);
+                t.Start();
+            }
         };
         App.Transcriber.StateChanged += OnEngineStateChanged;
         App.Instance.SetupProgress += OnSetupProgress;
